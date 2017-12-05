@@ -802,7 +802,7 @@ def ensemble(args):
                     inputs: features["inputs"],
                     preds: features["preds"]
                 }
-                
+
                 if args.emb_path:
                     feed_dict[embedding] = features["embedding"]
                     feed_dict[mask] = features["mask"]
