@@ -1,5 +1,5 @@
 # Tagger
-This is the code for the paper "Deep Semantic Role Labeling with Self-Attention".
+This is the code for the paper "[Deep Semantic Role Labeling with Self-Attention](https://arxiv.org/abs/1712.01586)".
 
 ## Usage
 ### Prerequisites
