@@ -146,7 +146,7 @@ def encoder(encoder_input, mask, params, dtype=None, scope=None):
                         )
                         x = _residual_fn(x, y, params)
                     elif params.layer_type == "cnn_layer":
-                        y = cnn_layer(
+                        y = _cnn_layer(
                             x,
                             mask,
                             params.hidden_size,

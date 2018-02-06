@@ -104,6 +104,10 @@ python tagger/main.py ensemble \
     --emb_path glove.6B.100d.txt
 ```
 
+
+### Pretrained Models
+The pretrained models can be downloaded at [Google Drive](https://drive.google.com/open?id=1jvBlpOmqGdZEqnFrdWJkH1xHsGU2OjiP).
+
 ## Contact
 This code is written by Zhixing Tan. If you have any problems, feel free to send an <a href="mailto:playinf@stu.xmu.edu.cn">email</a>.
 
