@@ -1,6 +1,18 @@
 # Tagger
 This is the code for the paper "[Deep Semantic Role Labeling with Self-Attention](https://arxiv.org/abs/1712.01586)".
 
+## Citation
+If you use our codes, please cite our paper:
+
+```
+@inproceedings{tan2018deep,
+  title = {Deep Semantic Role Labeling with Self-Attention},
+  author = {Tan, Zhixing and Wang, Mingxuan and Xie, Jun and Chen, Yidong and Shi, Xiaodong},
+  booktitle = {AAAI Conference on Artificial Intelligence},
+  year = {2018}
+}
+```
+
 ## Usage
 ### Prerequisites
 * python2
@@ -40,7 +52,7 @@ The above command will create `NUM_SHARDS` files with pattern `NAME-*-of-*` in t
 Once you finished the procedures described above, you can start the training stage.
 * Preparing the validation script
 
-    An external validation script is required to enable the validation functionality. 
+    An external validation script is required to enable the validation functionality.
     Here's the validation script we used to train an FFN model on the CoNLL-2005 dataset.
     Please make sure that the validation script can run properly.
 ```
@@ -62,7 +74,7 @@ perl $SRLPATH/bin/srl-eval.pl $DATAPATH/conll05.devel.props.* output
 ```
 * Training command
 
-    The command below is what we used to train an model on the CoNLL-2005 dataset.
+    The command below is what we used to train an model on the CoNLL-2005 dataset. The content of `run.sh` is described in the above section.
 ```
 python tagger/main.py train \
     --data_path TRAIN_PATH --model_dir train --model_name deepatt \
@@ -72,7 +84,7 @@ python tagger/main.py train \
     --training_params=batch_size=4096,eval_batch_size=1024,optimizer=Adadelta,initializer=orthogonal, \
                       use_global_initializer=false,initializer_gain=1.0,train_steps=600000, \
                       learning_rate_decay=piecewise_constant,learning_rate_values=[1.0,0.5,0.25], \
-                      learning_rate_boundaries=[400000,500000],device_list=[0],clip_grad_norm=1.0 \ 
+                      learning_rate_boundaries=[400000,500000],device_list=[0],clip_grad_norm=1.0 \
     --validation_params=script=run.sh
 ```
 
@@ -82,7 +94,7 @@ The following is the command used to generate outputs:
 ```
 python tagger/main.py predict \
     --data_path conll05.test.wsj.txt \
-    --model_dir train/best --model_name deepatt \ 
+    --model_dir train/best --model_name deepatt \
     --vocab_path word_dict label_dict \
     --device_list 0 \
     --decoding_params="decode_batch_size=512" \
@@ -91,14 +103,14 @@ python tagger/main.py predict \
 ```
 
 ### Model Ensemble
-The command for model ensemble is similar to the one used in decoding: 
+The command for model ensemble is similar to the one used in decoding:
 ```
 python tagger/main.py ensemble \
     --data_path conll05.devel.txt \
     --checkpoints model_1/model.ckpt model_2/model.ckpt \
     --output_name output \
     --vocab_path word_dict1 word_dict2 label_dict \
-    --model_params=feature_size=100,hidden_size=200,filter_size=800,num_hidden_layers=10 \ 
+    --model_params=feature_size=100,hidden_size=200,filter_size=800,num_hidden_layers=10 \
     --device_list 0 \
     --model_name deepatt \
     --emb_path glove.6B.100d.txt
