@@ -4,6 +4,7 @@
 
 import os
 import time
+import threading
 import subprocess
 
 from tagger.utils.checkpoint import latest_checkpoint
@@ -85,67 +86,82 @@ def add_to_record(record, item, capacity):
     return added, removed, record
 
 
-def validate(params):
-    time.sleep(100)
-    best_dir = params.output + "/best"
+class ValidationWorker(threading.Thread):
 
-    # create directory
-    if not os.path.exists(best_dir):
-        os.mkdir(best_dir)
-        record = []
-    else:
-        record = read_record(best_dir + "/top")
+    def init(self, params):
+        self._params = params
+        self._stop = False
 
-    while True:
-        try:
-            time.sleep(params.frequency)
-            model_name = latest_checkpoint(params.output)
+    def run(self):
+        params = self._params
+        best_dir = params.output + "/best"
+        last_checkpoint = None
 
-            if model_name is None:
-                continue
+        # create directory
+        if not os.path.exists(best_dir):
+            os.mkdir(best_dir)
+            record = []
+        else:
+            record = read_record(best_dir + "/top")
 
-            model_name = model_name.split("/")[-1]
-            # prediction and evaluation
-            child = subprocess.Popen("bash %s" % params.script,
-                                     shell=True, stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-            info = child.communicate()[0]
+        while not self._stop:
+            try:
+                time.sleep(params.frequency)
+                model_name = latest_checkpoint(params.output)
 
-            if not info:
-                continue
+                if model_name is None:
+                    continue
 
-            info = info.strip().split(b"\n")
-            overall = None
+                if model_name == last_checkpoint:
+                    continue
 
-            for line in info[::-1]:
-                if line.find(b"Overall") > 0:
-                    overall = line
-                    break
+                last_checkpoint = model_name
 
-            if not overall:
-                continue
+                model_name = model_name.split("/")[-1]
+                # prediction and evaluation
+                child = subprocess.Popen("bash %s" % params.script,
+                                        shell=True, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
+                info = child.communicate()[0]
 
-            f_score = float(overall.strip().split()[-1])
+                if not info:
+                    continue
 
-            # save best model
-            item = (f_score, model_name)
-            added, removed, record = add_to_record(record, item,
-                                                   params.keep_top_k)
-            log_fd = open(best_dir + "/log", "a")
-            log_fd.write("%s: %f\n" % (model_name, f_score))
-            log_fd.close()
+                info = info.strip().split(b"\n")
+                overall = None
 
-            if added is not None:
-                model_path = params.output + "/" + model_name + "*"
-                # copy model
-                os.system("cp %s %s" % (model_path, best_dir))
-                # update checkpoint
-                write_record(best_dir + "/top", record)
-                write_checkpoint(best_dir + "/checkpoint", record)
+                for line in info[::-1]:
+                    if line.find(b"Overall") > 0:
+                        overall = line
+                        break
 
-            if removed is not None:
-                # remove old model
-                model_name = params.output + "/best/" + removed + "*"
-                os.system("rm %s" % model_name)
-        except Exception as e:
-            print(e)
+                if not overall:
+                    continue
+
+                f_score = float(overall.strip().split()[-1])
+
+                # save best model
+                item = (f_score, model_name)
+                added, removed, record = add_to_record(record, item,
+                                                    params.keep_top_k)
+                log_fd = open(best_dir + "/log", "a")
+                log_fd.write("%s: %f\n" % (model_name, f_score))
+                log_fd.close()
+
+                if added is not None:
+                    model_path = params.output + "/" + model_name + "*"
+                    # copy model
+                    os.system("cp %s %s" % (model_path, best_dir))
+                    # update checkpoint
+                    write_record(best_dir + "/top", record)
+                    write_checkpoint(best_dir + "/checkpoint", record)
+
+                if removed is not None:
+                    # remove old model
+                    model_name = params.output + "/best/" + removed + "*"
+                    os.system("rm %s" % model_name)
+            except Exception as e:
+                print(e)
+
+    def stop(self):
+        self._stop = True

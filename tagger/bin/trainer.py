@@ -9,11 +9,11 @@ import argparse
 import copy
 import glob
 import logging
-import multiprocessing
 import os
 import re
 import six
 import socket
+import threading
 import time
 import torch
 
@@ -23,7 +23,7 @@ import tagger.models as models
 import tagger.optimizers as optimizers
 import tagger.utils as utils
 import tagger.utils.summary as summary
-from tagger.utils.validation import validate
+from tagger.utils.validation import ValidationWorker
 
 
 def parse_args(args=None):
@@ -102,7 +102,7 @@ def default_params():
         embedding="",
         # Validation
         keep_top_k=50,
-        frequency=120,
+        frequency=10,
         # Checkpoint Saving
         keep_checkpoint_max=20,
         keep_top_checkpoint_max=5,
@@ -356,11 +356,11 @@ def main(args):
     should_save = False
 
     if params.script:
-        process = multiprocessing.Process(target=validate, args=[params])
-        process.daemon = True
-        process.start()
+        thread = ValidationWorker(daemon=True)
+        thread.init(params)
+        thread.start()
     else:
-        process = None
+        thread = None
 
     def step_fn(features, step):
         t = time.time()
@@ -410,8 +410,9 @@ def main(args):
 
             epoch += 1
     finally:
-        if process is not None:
-            process.terminate()
+        if thread is not None:
+            thread.stop()
+            thread.join()
 
 
 # Wrap main function
